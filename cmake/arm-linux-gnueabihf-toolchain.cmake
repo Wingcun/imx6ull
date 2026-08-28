@@ -1,0 +1,22 @@
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+
+set(TOOLCHAIN_ROOT
+    "/home/wingcun/toolchain/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf")
+
+set(CMAKE_C_COMPILER
+    "${TOOLCHAIN_ROOT}/bin/arm-linux-gnueabihf-gcc")
+
+set(CMAKE_CXX_COMPILER
+    "${TOOLCHAIN_ROOT}/bin/arm-linux-gnueabihf-g++")
+
+set(CMAKE_ASM_COMPILER
+    "${TOOLCHAIN_ROOT}/bin/arm-linux-gnueabihf-as")
+
+set(CMAKE_FIND_ROOT_PATH
+    "${TOOLCHAIN_ROOT}")
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)

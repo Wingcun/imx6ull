@@ -1,0 +1,15 @@
+/build/
+/build-arm/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/Makefile
+
+*.o
+*.ko
+*.mod
+*.mod.c
+Module.symvers
+modules.order
+
+.vscode/

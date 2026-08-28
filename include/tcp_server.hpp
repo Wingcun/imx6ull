@@ -1,0 +1,27 @@
+#ifndef TCP_SERVER_HPP
+#define TCP_SERVER_HPP
+#include <cstdint>
+#include<string>
+#include<unordered_map>
+#include"device_manager.hpp"
+
+class TcpServer{
+
+public:
+    TcpServer();
+    ~TcpServer();
+    bool start(uint16_t port = 8000);
+    void run();
+
+private:
+    bool setNonBlocking(int fd);
+    void closeSocket(int fd);
+    bool handleClientRead(int fd);
+    DeviceManager deviceManager;
+
+    int listenfd;  
+    int epollfd; 
+    std::unordered_map<int,std::string> receiveBuffers; // int for fd,string for data buffer
+};
+
+#endif 
