@@ -9,7 +9,11 @@
 *.ko
 *.mod
 *.mod.c
+*.cmd
 Module.symvers
 modules.order
+
+driver/device_ioctl_test
+driver/device_poll_test
 
 .vscode/
