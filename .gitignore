@@ -7,6 +7,7 @@
 
 *.o
 *.ko
+*.dtb
 *.mod
 *.mod.c
 *.cmd
