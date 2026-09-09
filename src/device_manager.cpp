@@ -52,10 +52,12 @@ std::string DeviceManager::execute(const std::string& requestLine) {
         const bool simulated = !led.available();
 
         if (simulated) {
-            simulatedLedOn = on;
+            ledOn = on;
         } else if (!led.set(on)) {
             return "RES " + request.id +
                 " ERROR led_write_failed\n";
+        } else {
+            ledOn = on;
         }
 
         return "RES " + request.id +
@@ -69,10 +71,10 @@ std::string DeviceManager::execute(const std::string& requestLine) {
     if (request.command == "STATUS" &&
         request.args.size() == 1 &&
         request.args[0] == "GET") {
-        bool on = simulatedLedOn;
+        bool on = ledOn;
         const bool simulated = !led.available();
 
-        if (!simulated && !led.get(on)) {
+        if (!simulated && led.readable() && !led.get(on)) {
             return "RES " + request.id +
                 " ERROR led_read_failed\n";
         }

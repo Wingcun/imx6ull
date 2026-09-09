@@ -1,13 +1,27 @@
 #include "led_device.hpp"
 
 #include <fstream>
+#include <fcntl.h>
 #include <unistd.h>
 
-LedDevice::LedDevice(const std::string& basePath)
-    : brightnessPath(basePath + "/brightness"),
-      available_(access(brightnessPath.c_str(), R_OK | W_OK) == 0) {
+LedDevice::LedDevice(const std::string& path)
+    : path_(path),
+      brightnessPath_(),
+      available_(false),
+      characterDevice_(path.find("/dev/") == 0) {
+    if (characterDevice_) {
+        available_ =
+            access(path_.c_str(), R_OK | W_OK) == 0;
+        return;
+    }
+
+    brightnessPath_ = path_ + "/brightness";
+
+    available_ =
+        access(brightnessPath_.c_str(), R_OK | W_OK) == 0;
+
     if (available_) {
-        std::ofstream trigger(basePath + "/trigger");
+        std::ofstream trigger(path_ + "/trigger");
         if (trigger) {
             trigger << "none";
         }
@@ -23,22 +37,38 @@ bool LedDevice::set(bool on) const {
         return false;
     }
 
-    std::ofstream output(brightnessPath);
+    if (characterDevice_) {
+        const char value = on ? '1' : '0';
+        const int fd = open(path_.c_str(), O_WRONLY);
+
+        if (fd < 0) {
+            return false;
+        }
+
+        const ssize_t result =
+            write(fd, &value, 1);
+
+        close(fd);
+        return result == 1;
+    }
+
+    std::ofstream output(brightnessPath_);
     if (!output) {
         return false;
     }
 
     output << (on ? 1 : 0);
     output.flush();
+
     return output.good();
 }
 
 bool LedDevice::get(bool& on) const {
-    if (!available_) {
+    if (!available_ || characterDevice_) {
         return false;
     }
 
-    std::ifstream input(brightnessPath);
+    std::ifstream input(brightnessPath_);
     int value = 0;
 
     if (!(input >> value)) {
@@ -47,4 +77,8 @@ bool LedDevice::get(bool& on) const {
 
     on = value != 0;
     return true;
+}
+
+bool LedDevice::readable() const {
+    return available_ && !characterDevice_;
 }

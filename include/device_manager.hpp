@@ -17,8 +17,8 @@ public:
     ~DeviceManager();
 
 private:
-    LedDevice led{"/sys/class/leds/sys-led"};
-    bool simulatedLedOn = false;
+    LedDevice led{"/dev/imx6ull_device"};
+    bool ledOn = false;
 
     void keyMonitorLoop();
 
