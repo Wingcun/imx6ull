@@ -1,0 +1,6 @@
+#include "imx6ull-alientek-emmc.dts"
+
+&platform_probe_test {
+	compatible = "training,imx6ull-platform-probe";
+	status = "okay";
+};

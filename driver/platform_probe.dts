@@ -1,11 +1,12 @@
 /dts-v1/;
 
-/ {
-    compatible = "fsl,imx6ull";
-    model = "Freescale i.MX6ULL";
+#include "imx6ull-alientek-emmc.dts"
+#include <dt-bindings/gpio/gpio.h>
 
-    platform-probe-test {
+/ {
+    platform_probe_test: platform-probe-test {
         compatible = "training,imx6ull-platform-probe";
+        led-gpios = <&gpio1 3 GPIO_ACTIVE_LOW>;
         status = "okay";
     };
 };
