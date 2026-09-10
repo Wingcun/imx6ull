@@ -15,6 +15,34 @@ namespace{
     constexpr int MAX_EVENTS = 16;
     constexpr int BUFFER_SIZE = 1024;
     constexpr int EPOLL_TIMEOUT_MS = 1000; // 1 second
+    bool sendAll(int fd, const std::string& data) {
+        std::size_t offset = 0;
+
+        while (offset < data.size()) {
+            const ssize_t sent = send(
+                fd,
+                data.data() + offset,
+                data.size() - offset,
+                MSG_NOSIGNAL
+            );
+
+            if (sent > 0) {
+                offset += static_cast<std::size_t>(sent);
+                continue;
+            }
+
+            if (sent < 0 &&
+                (errno == EINTR ||
+                errno == EAGAIN ||
+                errno == EWOULDBLOCK)) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
 }
 
 bool TcpServer::setNonBlocking(int fd){
@@ -93,14 +121,7 @@ void TcpServer::broadcastDeviceEvents() {
         }
 
         for (int fd : clients) {
-            const ssize_t sent = send(
-                fd,
-                event.data(),
-                event.size(),
-                MSG_NOSIGNAL
-            );
-
-            if (sent < 0) {
+            if (!sendAll(fd, event)) {
                 perror("event send error");
                 closeSocket(fd);
             }
@@ -163,14 +184,7 @@ bool TcpServer::handleClientRead(int fd) {
 
                 std::string response =deviceManager.execute(request);
 
-                ssize_t sent = send(
-                    fd,
-                    response.data(),
-                    response.size(),
-                    0
-                );
-
-                if (sent < 0) {
+                if (!sendAll(fd, response)) {
                     perror("send error");
                     return false;
                 }
