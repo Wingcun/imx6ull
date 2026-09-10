@@ -64,8 +64,27 @@ bool LedDevice::set(bool on) const {
 }
 
 bool LedDevice::get(bool& on) const {
-    if (!available_ || characterDevice_) {
+    if (!available_) {
         return false;
+    }
+
+    if (characterDevice_) {
+        char value[2] = {};
+        const int fd = open(path_.c_str(), O_RDONLY);
+
+        if (fd < 0) {
+            return false;
+        }
+
+        const ssize_t result = read(fd, value, sizeof(value));
+        close(fd);
+
+        if (result < 1) {
+            return false;
+        }
+
+        on = value[0] == '1';
+        return true;
     }
 
     std::ifstream input(brightnessPath_);
@@ -80,5 +99,5 @@ bool LedDevice::get(bool& on) const {
 }
 
 bool LedDevice::readable() const {
-    return available_ && !characterDevice_;
+    return available_ ;
 }

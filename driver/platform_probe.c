@@ -43,6 +43,41 @@ static void platform_led_set(
     data->led_state = state;
 }
 
+static ssize_t platform_led_read(
+    struct file *file,
+    char __user *buffer,
+    size_t count,
+    loff_t *offset)
+{
+    struct miscdevice *miscdev;
+    struct platform_probe_data *data;
+    char result[2];
+
+    if (*offset != 0)
+        return 0;
+
+    if (count < sizeof(result))
+        return -EINVAL;
+
+    miscdev = file->private_data;
+
+    data = container_of(
+        miscdev,
+        struct platform_probe_data,
+        miscdev);
+
+    mutex_lock(&data->lock);
+    result[0] = data->led_state ? '1' : '0';
+    mutex_unlock(&data->lock);
+
+    result[1] = '\n';
+
+    if (copy_to_user(buffer, result, sizeof(result)))
+        return -EFAULT;
+
+    *offset = sizeof(result);
+    return sizeof(result);
+}
 
 static ssize_t platform_led_write(
     struct file *file,
@@ -86,6 +121,7 @@ static ssize_t platform_led_write(
 
 static const struct file_operations platform_led_fops = {
     .owner = THIS_MODULE,
+    .read = platform_led_read,
     .write = platform_led_write,
     .llseek = no_llseek,
 };
