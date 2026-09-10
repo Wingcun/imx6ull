@@ -1,9 +1,10 @@
 #ifndef TCP_SERVER_HPP
 #define TCP_SERVER_HPP
 #include <cstdint>
-#include<string>
-#include<unordered_map>
-#include"device_manager.hpp"
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include "device_manager.hpp"
 
 class TcpServer{
 
@@ -17,6 +18,7 @@ private:
     bool setNonBlocking(int fd);
     void closeSocket(int fd);
     bool handleClientRead(int fd);
+    void broadcastDeviceEvents();
     DeviceManager deviceManager;
 
     int listenfd;  

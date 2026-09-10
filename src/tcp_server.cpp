@@ -14,6 +14,7 @@
 namespace{
     constexpr int MAX_EVENTS = 16;
     constexpr int BUFFER_SIZE = 1024;
+    constexpr int EPOLL_TIMEOUT_MS = 1000; // 1 second
 }
 
 bool TcpServer::setNonBlocking(int fd){
@@ -75,6 +76,36 @@ bool TcpServer::start(uint16_t port) {
 
     std::cout << "server is listening on port" <<port<< std::endl;
     return true;
+}
+
+void TcpServer::broadcastDeviceEvents() {
+    if (receiveBuffers.empty()) {
+        return;
+    }
+
+    std::string event;
+
+    while (deviceManager.popEvent(event)) {
+        std::vector<int> clients;
+
+        for (const auto& item : receiveBuffers) {
+            clients.push_back(item.first);
+        }
+
+        for (int fd : clients) {
+            const ssize_t sent = send(
+                fd,
+                event.data(),
+                event.size(),
+                MSG_NOSIGNAL
+            );
+
+            if (sent < 0) {
+                perror("event send error");
+                closeSocket(fd);
+            }
+        }
+    }
 }
 
 void TcpServer::closeSocket(int fd){
@@ -165,7 +196,7 @@ bool TcpServer::handleClientRead(int fd) {
 void TcpServer::run(){
     epoll_event events[MAX_EVENTS];
     while(true){
-        int ReadyCount= epoll_wait(epollfd, events, MAX_EVENTS, -1);
+        int ReadyCount= epoll_wait(epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
         if(ReadyCount < 0){
             if(errno == EINTR) continue; // Interrupted by signal, retry
             perror("epoll_wait error");
@@ -175,51 +206,52 @@ void TcpServer::run(){
             int currentfd=events[i].data.fd;
             uint32_t event_flags=events[i].events;
             if (currentfd == listenfd) {
-            while (true) {
-                sockaddr_in client_addr{};
-                socklen_t client_len = sizeof(client_addr);
+                while (true) {
+                    sockaddr_in client_addr{};
+                    socklen_t client_len = sizeof(client_addr);
 
-                int clientfd = accept(
-                    listenfd,
-                    reinterpret_cast<sockaddr*>(&client_addr),
-                    &client_len
-                );
+                    int clientfd = accept(
+                        listenfd,
+                        reinterpret_cast<sockaddr*>(&client_addr),
+                        &client_len
+                    );
 
-                if (clientfd < 0) {
-                    if (errno == EAGAIN ||
-                        errno == EWOULDBLOCK) {
+                    if (clientfd < 0) {
+                        if (errno == EAGAIN ||
+                            errno == EWOULDBLOCK) {
+                            break;
+                        }
+
+                        perror("accept error");
                         break;
                     }
 
-                    perror("accept error");
-                    break;
+                    if (!setNonBlocking(clientfd)) {
+                        perror("setNonBlocking error");
+                        close(clientfd);
+                        continue;
+                    }
+
+                    epoll_event client_event{};
+                    client_event.data.fd = clientfd;
+                    client_event.events = EPOLLIN | EPOLLRDHUP;
+
+                    if (epoll_ctl(
+                            epollfd,
+                            EPOLL_CTL_ADD,
+                            clientfd,
+                            &client_event) < 0) {
+                        perror("epoll_ctl add client error");
+                        close(clientfd);
+                        continue;
+                    }
+                    receiveBuffers[clientfd] = std::string();
+                    std::cout << "[INFO] New client connected: "
+                            << clientfd << std::endl;
                 }
-
-                if (!setNonBlocking(clientfd)) {
-                    perror("setNonBlocking error");
-                    close(clientfd);
-                    continue;
-                }
-
-                epoll_event client_event{};
-                client_event.data.fd = clientfd;
-                client_event.events = EPOLLIN | EPOLLRDHUP;
-
-                if (epoll_ctl(
-                        epollfd,
-                        EPOLL_CTL_ADD,
-                        clientfd,
-                        &client_event) < 0) {
-                    perror("epoll_ctl add client error");
-                    close(clientfd);
-                    continue;
-                }
-
-                std::cout << "[INFO] New client connected: "
-                        << clientfd << std::endl;
-            }
-            continue;
-        } else {
+                continue;
+            } 
+            else{
                 if (event_flags & EPOLLIN) {
                     if (!handleClientRead(currentfd)) {
                         closeSocket(currentfd);
@@ -233,6 +265,7 @@ void TcpServer::run(){
 
             }
         }
+        broadcastDeviceEvents();
     }
 }
  

@@ -1,5 +1,6 @@
 #include "device_manager.hpp"
 #include "protocol.hpp"
+#include <chrono>
 
 DeviceManager::DeviceManager() {
     if (key.available()) {
@@ -26,11 +27,60 @@ void DeviceManager::keyMonitorLoop() {
             continue;
         }
 
+        const auto now =
+            std::chrono::system_clock::now();
+
+        const auto timestampMs =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                now.time_since_epoch()
+            ).count();
+
         std::lock_guard<std::mutex> lock(keyMutex);
+
+        /*
+         * 过滤相同状态的重复事件：
+         * pressed -> pressed 不重复记录；
+         * released -> released 不重复记录。
+         */
+        if (pressed == keyPressed) {
+            continue;
+        }
 
         keyPressed = pressed;
         ++keyEventCount;
+
+        if (keyEvents.size() >= MAX_KEY_EVENTS) {
+            keyEvents.pop_front();
+        }
+
+        keyEvents.push_back({
+            nextEventSequence++,
+            pressed,
+            static_cast<std::uint64_t>(timestampMs)
+        });
     }
+}
+
+bool DeviceManager::popEvent(std::string& event) {
+    std::lock_guard<std::mutex> lock(keyMutex);
+
+    if (keyEvents.empty()) {
+        return false;
+    }
+
+    const KeyEvent keyEvent = keyEvents.front();
+    keyEvents.pop_front();
+
+    event =
+        "EVENT KEY {\"sequence\":" +
+        std::to_string(keyEvent.sequence) +
+        ",\"state\":\"" +
+        (keyEvent.pressed ? "pressed" : "released") +
+        "\",\"timestamp_ms\":" +
+        std::to_string(keyEvent.timestampMs) +
+        "}\n";
+
+    return true;
 }
 
 std::string DeviceManager::execute(const std::string& requestLine) {
