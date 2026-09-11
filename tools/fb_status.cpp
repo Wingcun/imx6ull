@@ -3,6 +3,8 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <fstream>
+#include <string>
 
 static std::array<uint8_t, 7> glyph(char c) {
     switch (c) {
@@ -23,9 +25,39 @@ static std::array<uint8_t, 7> glyph(char c) {
     case 'I': return {0x1f,0x04,0x04,0x04,0x04,0x04,0x1f};
     case 'M': return {0x11,0x1b,0x15,0x15,0x11,0x11,0x11};
     case 'X': return {0x11,0x11,0x0a,0x04,0x0a,0x11,0x11};
+    case 'P': return {0x1e,0x11,0x11,0x1e,0x10,0x10,0x10};
     case ' ': return {0,0,0,0,0,0,0};
     default:  return {0,0,0,0,0,0,0};
     }
+}
+
+static std::string readNetworkState() {
+    std::ifstream input("/sys/class/net/eth1/operstate");
+    std::string state;
+
+    if (input >> state) {
+        return state == "up" ? "UP" : "DOWN";
+    }
+
+    return "DOWN";
+}
+
+static std::string readLedState() {
+    int fd = open("/dev/imx6ull_device", O_RDONLY);
+
+    if (fd < 0) {
+        return "OFF";
+    }
+
+    char value = '0';
+    const ssize_t result = read(fd, &value, 1);
+    close(fd);
+
+    if (result == 1 && value == '1') {
+        return "ON";
+    }
+
+    return "OFF";
 }
 
 int main() {
@@ -59,9 +91,15 @@ int main() {
         for (int x = 0; x < width; ++x)
             fb[y * (lineBytes / 2) + x] = background;
 
+    std::string netLine =
+        "NET " + readNetworkState();
+
+    std::string ledLine =
+        "LED " + readLedState();
+
     const char* lines[] = {
-        "NET",
-        "LED ON",
+        netLine.c_str(),
+        ledLine.c_str(),
         "KEY",
         "KEY RELEASED",
         "CLIENT"

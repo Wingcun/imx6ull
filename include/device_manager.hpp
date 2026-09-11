@@ -10,11 +10,17 @@
 #include <thread>
 #include <deque>
 
+struct DeviceStatus {
+    bool ledOn;
+    bool keyPressed;
+    std::uint64_t keyEventCount;
+};
 
 class DeviceManager {
 public:
     std::string execute(const std::string& requestLine);
     bool popEvent(std::string& event);
+    DeviceStatus getStatus();
     DeviceManager();
     ~DeviceManager();
 

@@ -1,15 +1,16 @@
-#include<iostream>
-#include<unistd.h>
-#include<sys/socket.h>
-#include<arpa/inet.h>
-#include<string.h>
-#include<cstdio>
-#include<fcntl.h>  //set non-blocking
-#include<sys/epoll.h>  //epoll related header files
+#include <iostream>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <cstdio>
+#include <fcntl.h>  //set non-blocking
+#include <sys/epoll.h>  //epoll related header files
 #include "tcp_server.hpp"
-#include<unordered_map>
-#include<cerrno>
+#include <unordered_map>
+#include <cerrno>
 #include "protocol.hpp"
+#include <fstream>
 
 namespace{
     constexpr int MAX_EVENTS = 16;
@@ -42,6 +43,17 @@ namespace{
         }
 
         return true;
+    }
+
+    std::string readNetworkState() {
+        std::ifstream input("/sys/class/net/eth1/operstate");
+        std::string state;
+
+        if (input >> state && state == "up") {
+            return "UP";
+        }
+
+        return "DOWN";
     }
 }
 
@@ -280,6 +292,13 @@ void TcpServer::run(){
             }
         }
         broadcastDeviceEvents();
+        if (lcdDisplay.available()) {
+        lcdDisplay.update(
+            deviceManager.getStatus(),
+            receiveBuffers.size(),
+            readNetworkState()
+        );
+        }
     }
 }
  

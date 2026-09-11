@@ -83,6 +83,17 @@ bool DeviceManager::popEvent(std::string& event) {
     return true;
 }
 
+DeviceStatus DeviceManager::getStatus() {
+    std::lock_guard<std::mutex> lock(keyMutex);
+
+    DeviceStatus status{};
+    status.ledOn = ledOn;
+    status.keyPressed = keyPressed;
+    status.keyEventCount = keyEventCount;
+
+    return status;
+}
+
 std::string DeviceManager::execute(const std::string& requestLine) {
     ParsedRequest request;
 
@@ -102,11 +113,13 @@ std::string DeviceManager::execute(const std::string& requestLine) {
         const bool simulated = !led.available();
 
         if (simulated) {
+            std::lock_guard<std::mutex> lock(keyMutex);
             ledOn = on;
         } else if (!led.set(on)) {
             return "RES " + request.id +
                 " ERROR led_write_failed\n";
         } else {
+            std::lock_guard<std::mutex> lock(keyMutex);
             ledOn = on;
         }
 
@@ -121,7 +134,11 @@ std::string DeviceManager::execute(const std::string& requestLine) {
     if (request.command == "STATUS" &&
         request.args.size() == 1 &&
         request.args[0] == "GET") {
-        bool on = ledOn;
+
+        bool on = false;{
+            std::lock_guard<std::mutex> lock(keyMutex);    
+            bool on = ledOn;
+        }
         const bool simulated = !led.available();
 
         if (!simulated && led.readable() && !led.get(on)) {

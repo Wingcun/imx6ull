@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include "device_manager.hpp"
+#include "lcd_display.hpp"
 
 class TcpServer{
 
@@ -20,7 +21,7 @@ private:
     bool handleClientRead(int fd);
     void broadcastDeviceEvents();
     DeviceManager deviceManager;
-
+    LcdDisplay lcdDisplay;
     int listenfd;  
     int epollfd; 
     std::unordered_map<int,std::string> receiveBuffers; // int for fd,string for data buffer

@@ -13,6 +13,7 @@ add_executable(device-control
     src/device_manager.cpp
     src/led_device.cpp
     src/key_device.cpp
+    src/lcd_display.cpp
 )
 
 find_package(Threads REQUIRED)
