@@ -194,7 +194,7 @@ bool TcpServer::handleClientRead(int fd) {
                           << request
                           << std::endl;
 
-                std::string response =deviceManager.execute(request);
+                std::string response =deviceManager.execute(request,receiveBuffers.size());
 
                 if (!sendAll(fd, response)) {
                     perror("send error");

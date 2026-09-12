@@ -23,6 +23,7 @@ public:
         ledLabel = new QLabel("LED: unknown");
         keyLabel = new QLabel("KEY: unknown");
         eventsLabel = new QLabel("Events: unknown");
+        clientsLabel = new QLabel("Clients: 0");
         logView = new QTextEdit;
         logView->setReadOnly(true);
 
@@ -33,6 +34,7 @@ public:
         layout->addWidget(ledLabel);
         layout->addWidget(keyLabel);
         layout->addWidget(eventsLabel);
+        layout->addWidget(clientsLabel);
         layout->addWidget(ledButton);
         layout->addWidget(logView);
 
@@ -113,18 +115,16 @@ private:
     void requestStatus() {
         socket->write("REQ 1 STATUS GET\n");
         socket->write("REQ 2 KEY GET\n");
+        socket->write("REQ 3 CLIENTS GET\n");
     }
 
     void toggleLed() {
         ledOn = !ledOn;
 
-        const QString state =
-            ledOn ? "ON" : "OFF";
+        const QString state =ledOn ? "ON" : "OFF";
 
         socket->write(
-            QString("REQ 3 LED SET %1\n")
-                .arg(state)
-                .toUtf8());
+            QString("REQ 3 LED SET %1\n").arg(state).toUtf8());
     }
 
     void readMessages() {
@@ -173,6 +173,18 @@ private:
                     "Events: " +
                     message.mid(pos + 9));
             }
+
+            if (message.contains("\"clients\":")) {
+                const int pos =
+                    message.indexOf("\"clients\":");
+
+                clientsLabel->setText(
+                    "Clients: " +
+                    message.mid(pos + 10)
+                );
+
+                continue;
+            }
         }
     }
 
@@ -180,6 +192,7 @@ private:
     QLabel* ledLabel;
     QLabel* keyLabel;
     QLabel* eventsLabel;
+    QLabel* clientsLabel;
     QPushButton* ledButton;
     QTextEdit* logView;
 

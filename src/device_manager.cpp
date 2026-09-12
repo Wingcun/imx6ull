@@ -94,7 +94,7 @@ DeviceStatus DeviceManager::getStatus() {
     return status;
 }
 
-std::string DeviceManager::execute(const std::string& requestLine) {
+std::string DeviceManager::execute(const std::string& requestLine,std::size_t clientCount) {
     ParsedRequest request;
 
     if (!parseRequest(requestLine, request)) {
@@ -176,6 +176,15 @@ std::string DeviceManager::execute(const std::string& requestLine) {
             "\",\"available\":true,"
             "\"events\":" +
             std::to_string(keyEventCount) +
+            "}\n";
+    }
+
+    if (request.command == "CLIENTS" &&
+        request.args.size() == 1 &&
+        request.args[0] == "GET") {
+        return "RES " + request.id +
+            " OK {\"clients\":" +
+            std::to_string(clientCount) +
             "}\n";
     }
 

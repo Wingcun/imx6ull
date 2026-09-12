@@ -18,7 +18,7 @@ struct DeviceStatus {
 
 class DeviceManager {
 public:
-    std::string execute(const std::string& requestLine);
+    std::string execute(const std::string& requestLine,std::size_t clientCount = 0);
     bool popEvent(std::string& event);
     DeviceStatus getStatus();
     DeviceManager();
