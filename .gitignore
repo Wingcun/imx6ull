@@ -18,3 +18,5 @@ driver/device_ioctl_test
 driver/device_poll_test
 
 .vscode/
+
+app/qt_hmi/qt_hmi
